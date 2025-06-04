@@ -1,0 +1,4 @@
+.venv
+# src/INPUT/*
+# src/OUTPUT/*
+# src/ERROR/*
