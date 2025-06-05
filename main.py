@@ -33,7 +33,7 @@ class App:
 
     def _DirGuard(self, dirpath: str):
         if not os.path.isdir(dirpath):
-            os.mkdir(dirpath)
+            os.makedirs(dirpath)
             logging.warning(f"Création du dossier {dirpath}")
 
     def _IsAnonymized(self, texts: str, mapping: dict[str, str]) -> tuple[bool, tuple[str, str, str]]:
@@ -48,13 +48,13 @@ class App:
                 unknown.append((name, "Le formatage du fichier word empêche l'anonymisation complète", ''))
             elif name.lower() in texts_lower:
                 is_anonymized = False
-                unknown.append((name, "Le nom a été trouvé dans le document avec un ensemble de majuscules/minuscules différent", texts[texts_lower.index(name.lower()): texts_lower.index(name.lower()) + len(name)]))
+                unknown.append((name, "Le nom a été trouvé dans le document avec une casse différente", texts[texts_lower.index(name.lower()): texts_lower.index(name.lower()) + len(name)]))
             elif self._RemoveAccents(name) in textsRemoveAccent:
                 is_anonymized = False
                 unknown.append((name, "Le nom a été trouvé dans le document avec une accentuation différente", texts[textsRemoveAccent.index(name.lower()): textsRemoveAccent.index(name.lower()) + len(name)]))
             elif self._RemoveAccents(name.lower()) in textsRemoveAccentLower:
                 is_anonymized = False
-                unknown.append((name, "Le nom a été trouvé dans le document avec un ensemble de majuscules/minuscules et une accentuation différents", texts[textsRemoveAccentLower.index(name.lower()): textsRemoveAccentLower.index(name.lower()) + len(name)]))
+                unknown.append((name, "Le nom a été trouvé dans le document avec une casse et une accentuation différentes", texts[textsRemoveAccentLower.index(name.lower()): textsRemoveAccentLower.index(name.lower()) + len(name)]))
         return is_anonymized, unknown
 
     def _MoveTo(self, srcFilepath: str, dstDirpath: str, filename: str):
@@ -114,15 +114,10 @@ class App:
         print(f'{"-" * 60}')
         for filepath in files:
             try:
-                fileRecords =  filepath.replace(App.ToTranslateDirPath, '').split('/')
+                fileRecords =  os.path.split(filepath)
+                fileRecords = fileRecords[1:] # Delete INPUT folder.
                 fileRecords = list(filter(lambda curr: curr != '', fileRecords))
-                # Directory path without Translated directory path.
-                sourceDir = '/'.join(fileRecords[:-1])
                 filename = fileRecords[-1]
-
-                # Keep same folder architecture.
-                targetDir = os.path.join(App.TranslatedDirPath, sourceDir)
-                os.system(f'mkdir -p {targetDir}')
 
                 # Check if the file is completely downloaded.
                 fileSize = -1
@@ -143,29 +138,31 @@ class App:
                             self._Replace(cell.paragraphs, mapping)
 
                 basename, extension = os.path.splitext(filename)
-                newName = f'__{basename}__{extension}'
-                newPath = os.path.join(App.TranslatedDirPath, sourceDir, newName)
+                newName = f'{basename}{extension}'
+                newPath = os.path.join(App.TranslatedDirPath, newName)
                 doc.save(newPath)
 
                 doc = Document(newPath)
                 
                 compactText = self._CompactText(doc.paragraphs)
+                for table in doc.tables:
+                    for row in table.rows:
+                        for cell in row.cells:
+                            compactText += self._CompactText(cell.paragraphs)
+
                 isAnonymizedConcatXmlTag, namesConcatXmlTag = self._IsAnonymized(compactText, mapping)
 
                 if not isAnonymizedConcatXmlTag:
-                    print(f'🔴 {filepath}')
+                    print(f'[FAIL]  {filepath}')
                     if len(namesConcatXmlTag) > 0:
                         for n in namesConcatXmlTag:
-                            print(f'\t🟡 {n[0]}{f" -> {n[2]}" if n[2] != '' else ''} // {n[1]}')
+                            print(f'            {n[0]}{f" -> {n[2]}" if n[2] != '' else ''} // {n[1]}')
                 else:
-                    print(f'🟢 {filepath}')                
-
-                # Move the original to translated folder.
-                # self._MoveTo(filepath, targetDir, filename)
+                    print(f'[CHECK] {filepath}')
             except Exception as err:
                 print(err)
                 logging.error(err)
-                self._MoveTo(filepath, App.ErrorDirPath, filename)
+                # self._MoveTo(filepath, App.ErrorDirPath, filename)
         
         # Remove folders.
         self._RemoveEmptyFolders()
