@@ -6,6 +6,8 @@ Cet outil permet d'anonymiser automatiquement le contenu de documents Word (.doc
 
 ## 🛠 Dépendances
 
+Le développement a été menée avec une version de Python >= 3.12.
+
 Ce script utilise :
 
 * `python-docx`
