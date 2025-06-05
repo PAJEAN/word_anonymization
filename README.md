@@ -40,7 +40,7 @@ pip install -r requirements.txt
 * `INPUT/` : placez ici les fichiers `.docx` à anonymiser.
 * `OUTPUT/` : les fichiers anonymisés seront générés ici.
 * `ERROR/` : si une erreur survient, le fichier .docx source sera déplacé au sein de ce dossier.
-* `NAMES.txt` : fichier contenant les noms à anonymiser.
+* `NAMES.txt` : fichier contenant les noms à anonymiser, un nom par ligne.
 * `main.py` : script d'anonymisation.
 * `file.log` : fichier pour recencer les activités du script.
 
